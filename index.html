@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表格生成器 - 在线创建、编辑、导入导出表格</title>
+    <meta name="description" content="免费在线表格生成器，支持在线编辑、文本转表格、导入CSV/Excel文件，导出CSV和Excel格式，纯前端处理，数据安全无忧。">
+    <meta name="keywords" content="表格生成器,在线表格,CSV导出,Excel导出,文本转表格,在线编辑表格">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://table-gen.pages.dev/">
+    <meta property="og:title" content="表格生成器 - 在线创建、编辑、导入导出表格">
+    <meta property="og:description" content="免费在线表格生成器，支持在线编辑、文本转表格、导入CSV/Excel文件。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://table-gen.pages.dev/">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "表格生成器",
+        "url": "https://table-gen.pages.dev/",
+        "description": "免费在线表格生成器，支持在线编辑、文本转表格、导入CSV/Excel文件，导出CSV和Excel格式。",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "CNY"
+        }
+    }
+    </script>
+    <style>
+        [contenteditable]:focus {
+            outline: 2px solid #3B82F6;
+            outline-offset: -2px;
+            background-color: #EFF6FF;
+        }
+        [contenteditable]:hover {
+            background-color: #F8FAFC;
+        }
+        .tab-active {
+            border-bottom: 3px solid #3B82F6;
+            color: #3B82F6;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #3B82F6;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #2563EB;
+        }
+        .btn-secondary {
+            background-color: #F1F5F9;
+            color: #475569;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #E2E8F0;
+        }
+        .btn-danger {
+            background-color: #FEE2E2;
+            color: #DC2626;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .btn-danger:hover {
+            background-color: #FECACA;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.25rem;
+            background: white;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            z-index: 50;
+            min-width: 160px;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            color: #374151;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: none;
+        }
+        .dropdown-item:hover {
+            background-color: #F1F5F9;
+        }
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.5rem;
+            background: white;
+        }
+        .table-container table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 100%;
+        }
+        .table-container th,
+        .table-container td {
+            border: 1px solid #E2E8F0;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            min-width: 100px;
+            font-size: 0.875rem;
+        }
+        .table-container thead th {
+            background-color: #F8FAFC;
+            font-weight: 600;
+            color: #374151;
+            position: sticky;
+            top: 0;
+        }
+        .table-container tbody td {
+            color: #1F2937;
+        }
+        .table-container tbody tr:hover {
+            background-color: #F8FAFC;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18M7 6v12M17 6v12"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">表格生成器</h1>
+                    <p class="text-xs text-gray-500">快速创建、编辑、导入导出表格数据</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-1 mb-4">
+            <div class="flex space-x-1">
+                <button onclick="switchTab('edit')" id="tab-edit" class="tab-btn flex-1 py-3 px-4 text-sm rounded-lg transition-all duration-200 tab-active">
+                    📝 在线编辑
+                </button>
+                <button onclick="switchTab('text')" id="tab-text" class="tab-btn flex-1 py-3 px-4 text-sm rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">
+                    📋 文本转表格
+                </button>
+                <button onclick="switchTab('import')" id="tab-import" class="tab-btn flex-1 py-3 px-4 text-sm rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">
+                    📂 导入文件
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab: Online Edit -->
+        <div id="panel-edit" class="tab-panel fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <p class="text-sm text-gray-500 mb-3">直接在单元格中点击编辑，使用下方按钮增删行列</p>
+                <div id="table-edit-container" class="table-container max-h-[500px] overflow-auto"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Text to Table -->
+        <div id="panel-text" class="tab-panel hidden fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <p class="text-sm text-gray-500 mb-3">粘贴逗号分隔（CSV）或 Tab 分隔的文本，自动生成表格</p>
+                <textarea id="text-input" class="w-full h-48 p-4 border border-gray-300 rounded-lg text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="粘贴数据，例如：&#10;姓名,年龄,城市&#10;张三,28,北京&#10;李四,32,上海&#10;王五,25,广州&#10;&#10;或 Tab 分隔：&#10;姓名	年龄	城市&#10;张三	28	北京"></textarea>
+                <div class="mt-3 flex space-x-3">
+                    <button onclick="convertText()" class="btn-primary">
+                        🔄 生成表格
+                    </button>
+                    <button onclick="document.getElementById('text-input').value=''" class="btn-secondary">
+                        🗑️ 清空
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Import File -->
+        <div id="panel-import" class="tab-panel hidden fade-in">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <p class="text-sm text-gray-500 mb-3">上传 CSV 或 Excel (.xlsx) 文件，自动解析为可编辑表格</p>
+                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer" onclick="document.getElementById('file-input').click()">
+                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <p class="text-gray-600 font-medium">点击选择文件或拖拽文件到此处</p>
+                    <p class="text-gray-400 text-sm mt-1">支持 CSV、Excel (.xlsx) 格式</p>
+                </div>
+                <input type="file" id="file-input" class="hidden" accept=".csv,.xlsx,.xls" onchange="handleFileImport(event)">
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mt-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 font-medium">行列操作：</span>
+                    <button onclick="addRow()" class="btn-primary" title="在末尾添加一行">+ 行</button>
+                    <button onclick="addColumn()" class="btn-primary" title="在末尾添加一列">+ 列</button>
+                    <button onclick="deleteLastRow()" class="btn-danger" title="删除最后一行">- 行</button>
+                    <button onclick="deleteLastColumn()" class="btn-danger" title="删除最后一列">- 列</button>
+                </div>
+                <div class="flex-1"></div>
+                <div class="relative">
+                    <button onclick="toggleExportMenu()" class="btn-primary flex items-center gap-1">
+                        📥 导出
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div id="export-menu" class="dropdown-menu">
+                        <button class="dropdown-item" onclick="exportCSV()">📄 导出 CSV</button>
+                        <button class="dropdown-item" onclick="exportExcel()">📊 导出 Excel (.xlsx)</button>
+                    </div>
+                </div>
+                <button onclick="clearTable()" class="btn-secondary" title="清空表格数据">🗑️ 清空</button>
+            </div>
+        </div>
+
+        <!-- Table Preview (below action bar for all tabs) -->
+        <div id="preview-section" class="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4 hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-700">📋 表格预览</h3>
+                <span id="table-info" class="text-xs text-gray-400"></span>
+            </div>
+            <div id="table-preview-container" class="table-container max-h-[400px] overflow-auto"></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-500">
+                <p>© 2025 表格生成器 · 纯前端处理，数据不上传服务器</p>
+                <p class="mt-1 sm:mt-0">Built with ❤️ for productivity</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ===== State =====
+        let tableData = [];
+        const DEFAULT_ROWS = 5;
+        const DEFAULT_COLS = 5;
+
+        // ===== Init =====
+        function init() {
+            tableData = Array.from({ length: DEFAULT_ROWS }, () => Array(DEFAULT_COLS).fill(''));
+            renderTable();
+        }
+
+        // ===== Tab Switching =====
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-gray-500');
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+            document.getElementById('tab-' + tab).classList.remove('text-gray-500');
+            const panel = document.getElementById('panel-' + tab);
+            panel.classList.remove('hidden');
+            panel.classList.add('fade-in');
+        }
+
+        // ===== Render Table =====
+        function renderTable() {
+            if (tableData.length === 0) {
+                document.getElementById('table-edit-container').innerHTML = '<p class="text-gray-400 text-sm p-4 text-center">暂无数据，请添加行列或导入数据</p>';
+                updatePreview();
+                return;
+            }
+            const maxCols = Math.max(...tableData.map(r => r.length));
+            let html = '<table><thead><tr>';
+            html += '<th class="text-center text-xs text-gray-400 w-10">#</th>';
+            for (let c = 0; c < maxCols; c++) {
+                html += `<th class="text-center">${getColLetter(c)}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let r = 0; r < tableData.length; r++) {
+                html += `<tr><td class="text-center text-xs text-gray-400 bg-gray-50">${r + 1}</td>`;
+                for (let c = 0; c < maxCols; c++) {
+                    const val = (tableData[r] && tableData[r][c] !== undefined) ? tableData[r][c] : '';
+                    html += `<td contenteditable="true" data-row="${r}" data-col="${c}" onblur="cellEdited(this)" onkeydown="cellKeydown(event, this)">${escapeHtml(String(val))}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            document.getElementById('table-edit-container').innerHTML = html;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const section = document.getElementById('preview-section');
+            const info = document.getElementById('table-info');
+            if (tableData.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : 0;
+            info.textContent = `${tableData.length} 行 × ${maxCols} 列`;
+
+            // Preview is the same as edit table but non-editable display
+            let html = '<table><thead><tr>';
+            for (let c = 0; c < maxCols; c++) {
+                html += `<th>${getColLetter(c)}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let r = 0; r < tableData.length; r++) {
+                html += '<tr>';
+                for (let c = 0; c < maxCols; c++) {
+                    const val = (tableData[r] && tableData[r][c] !== undefined) ? tableData[r][c] : '';
+                    html += `<td>${escapeHtml(String(val))}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            document.getElementById('table-preview-container').innerHTML = html;
+        }
+
+        // ===== Cell Editing =====
+        function cellEdited(el) {
+            const row = parseInt(el.dataset.row);
+            const col = parseInt(el.dataset.col);
+            if (tableData[row]) {
+                tableData[row][col] = el.textContent;
+            }
+            updatePreview();
+        }
+
+        function cellKeydown(e, el) {
+            const row = parseInt(el.dataset.row);
+            const col = parseInt(el.dataset.col);
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const nextCol = e.shiftKey ? col - 1 : col + 1;
+                if (nextCol >= 0 && nextCol < (tableData[row] ? tableData[row].length : 0)) {
+                    const next = document.querySelector(`td[data-row="${row}"][data-col="${nextCol}"]`);
+                    if (next) next.focus();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const nextRow = row + 1;
+                if (nextRow < tableData.length) {
+                    const next = document.querySelector(`td[data-row="${nextRow}"][data-col="${col}"]`);
+                    if (next) next.focus();
+                }
+            }
+        }
+
+        // ===== Row/Column Operations =====
+        function addRow() {
+            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : DEFAULT_COLS;
+            tableData.push(Array(maxCols).fill(''));
+            renderTable();
+        }
+
+        function addColumn() {
+            tableData.forEach(row => row.push(''));
+            renderTable();
+        }
+
+        function deleteLastRow() {
+            if (tableData.length > 1) {
+                tableData.pop();
+                renderTable();
+            }
+        }
+
+        function deleteLastColumn() {
+            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : 0;
+            if (maxCols > 1) {
+                tableData.forEach(row => row.pop());
+                renderTable();
+            }
+        }
+
+        function clearTable() {
+            if (confirm('确定要清空所有表格数据吗？')) {
+                tableData = Array.from({ length: DEFAULT_ROWS }, () => Array(DEFAULT_COLS).fill(''));
+                renderTable();
+            }
+        }
+
+        // ===== Text to Table =====
+        function convertText() {
+            const text = document.getElementById('text-input').value;
+            if (!text.trim()) {
+                alert('请先粘贴文本数据');
+                return;
+            }
+            textToTable(text);
+            switchTab('edit');
+        }
+
+        function textToTable(text) {
+            const lines = text.trim().split('\n');
+            tableData = lines.map(line => {
+                if (line.includes('\t')) return line.split('\t');
+                return line.split(',').map(s => s.trim());
+            });
+            renderTable();
+        }
+
+        // ===== File Import =====
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            importFile(file);
+            event.target.value = '';
+        }
+
+        function importFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    tableData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                    // Ensure no empty rows
+                    tableData = tableData.filter(row => row.some(cell => cell !== ''));
+                    renderTable();
+                    switchTab('edit');
+                } catch (err) {
+                    alert('文件解析失败：' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ===== Export =====
+        function getTableDataForExport() {
+            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : 0;
+            return tableData.map(row => {
+                const padded = [...row];
+                while (padded.length < maxCols) padded.push('');
+                return padded;
+            });
+        }
+
+        function exportExcel() {
+            if (tableData.length === 0) { alert('表格为空，无法导出'); return; }
+            const exportData = getTableDataForExport();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+            XLSX.writeFile(wb, '表格.xlsx');
+            closeExportMenu();
+        }
+
+        function exportCSV() {
+            if (tableData.length === 0) { alert('表格为空，无法导出'); return; }
+            const exportData = getTableDataForExport();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), '表格.csv');
+            closeExportMenu();
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ===== Export Menu =====
+        function toggleExportMenu() {
+            const menu = document.getElementById('export-menu');
+            menu.classList.toggle('show');
+        }
+
+        function closeExportMenu() {
+            document.getElementById('export-menu').classList.remove('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.relative')) {
+                closeExportMenu();
+            }
+        });
+
+        // ===== Drag & Drop =====
+        const dropZone = document.querySelector('[onclick*="file-input"]');
+        if (dropZone) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-blue-400', 'bg-blue-50');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+                const file = e.dataTransfer.files[0];
+                if (file) importFile(file);
+            });
+        }
+
+        // ===== Utility =====
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function getColLetter(index) {
+            let result = '';
+            let n = index;
+            do {
+                result = String.fromCharCode(65 + (n % 26)) + result;
+                n = Math.floor(n / 26) - 1;
+            } while (n >= 0);
+            return result;
+        }
+
+        // ===== Start =====
+        init();
+    </script>
+</body>
+</html>

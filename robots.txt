@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://table-gen.pages.dev/sitemap.xml

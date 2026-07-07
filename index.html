@@ -13,6 +13,12 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://table-gen.pages.dev/">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="表格生成器">
+    <link rel="apple-touch-icon" href="/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script type="application/ld+json">
@@ -558,6 +564,11 @@
 
         // ===== Start =====
         init();
+    </script>
+    <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
     </script>
 </body>
 </html>

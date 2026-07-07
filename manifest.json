@@ -1,0 +1,17 @@
+{
+  "name": "表格生成器",
+  "short_name": "表格生成器",
+  "description": "免费在线表格生成器，支持创建、编辑、导入导出CSV和Excel表格",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

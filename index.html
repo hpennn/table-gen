@@ -47,14 +47,12 @@
         @keyframes dotBounce { 0%,80%,100% { transform: scale(0.6); opacity:0.4; } 40% { transform: scale(1); opacity:1; } }
         .drop-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(59,130,246,0.12); border: 3px dashed #3b82f6; display: none; align-items: center; justify-content: center; }
         .drop-overlay.active { display: flex; }
-        /* In-chat table styles */
         .chat-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .chat-table th, .chat-table td { border: 1px solid #d1d5db; padding: 4px 8px; text-align: left; min-width: 60px; font-size: 0.8rem; }
         .chat-table thead th { background: #f1f5f9; font-weight: 600; color: #374151; }
         .chat-table tbody td { color: #1f2937; }
         .chat-table [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: -2px; background: #eff6ff; }
         .chat-table [contenteditable]:hover { background: #f8fafc; }
-        /* Fullscreen editor */
         #fullEditor { display: none; position: fixed; inset: 0; z-index: 200; background: #f9fafb; flex-direction: column; }
         #fullEditor.active { display: flex; }
         #fullEditor .editor-table { border-collapse: collapse; width: 100%; }
@@ -62,9 +60,63 @@
         #fullEditor .editor-table thead th { background: #f8fafc; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 1; }
         #fullEditor [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: -2px; background: #eff6ff; }
         #fullEditor [contenteditable]:hover { background: #f8fafc; }
+        /* Auth modal */
+        .auth-overlay { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; }
+        .auth-overlay.hidden { display: none; }
+        .auth-modal { background: white; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 100%; max-width: 400px; margin: 16px; overflow: hidden; }
+        .auth-tab { flex: 1; padding: 12px; text-align: center; font-weight: 600; font-size: 0.875rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; color: #9ca3af; }
+        .auth-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+        .auth-input { width: 100%; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; font-size: 0.875rem; outline: none; transition: all 0.2s; }
+        .auth-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .auth-btn { width: 100%; padding: 10px; border-radius: 10px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+        .auth-btn-primary { background: #3b82f6; color: white; }
+        .auth-btn-primary:hover { background: #2563eb; }
+        .auth-btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+        .auth-error { color: #ef4444; font-size: 0.75rem; min-height: 18px; }
+        /* User info in header */
+        .user-info { display: flex; align-items: center; gap: 8px; }
+        .user-info .nickname { font-size: 0.8rem; color: #6b7280; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .user-info .logout-btn { font-size: 0.7rem; color: #9ca3af; cursor: pointer; padding: 2px 8px; border: 1px solid #e5e7eb; border-radius: 6px; transition: all 0.2s; }
+        .user-info .logout-btn:hover { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
     </style>
 </head>
 <body class="bg-gray-50 h-screen flex flex-col overflow-hidden">
+
+    <!-- Auth Modal -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-modal">
+            <div class="px-6 pt-5 pb-2 text-center">
+                <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18M7 6v12M17 6v12"/>
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-gray-800">表格生成器</h2>
+                <p class="text-xs text-gray-400 mt-1">登录后使用 AI 智能表格功能</p>
+            </div>
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-100">
+                <div id="loginTab" class="auth-tab active" onclick="switchAuthTab('login')">登录</div>
+                <div id="registerTab" class="auth-tab" onclick="switchAuthTab('register')">注册</div>
+            </div>
+            <!-- Login Form -->
+            <div id="loginForm" class="px-6 py-5 space-y-3">
+                <input id="loginAccount" type="text" class="auth-input" placeholder="用户名 / 手机号" autocomplete="username">
+                <input id="loginPassword" type="password" class="auth-input" placeholder="密码" autocomplete="current-password">
+                <div id="loginError" class="auth-error"></div>
+                <button id="loginBtn" class="auth-btn auth-btn-primary" onclick="doLogin()">登录</button>
+            </div>
+            <!-- Register Form -->
+            <div id="registerForm" class="px-6 py-5 space-y-3 hidden">
+                <input id="regAccount" type="text" class="auth-input" placeholder="用户名 / 手机号" autocomplete="username">
+                <input id="regNickname" type="text" class="auth-input" placeholder="昵称（选填）">
+                <input id="regPassword" type="password" class="auth-input" placeholder="密码（至少6位）" autocomplete="new-password">
+                <input id="regPasswordConfirm" type="password" class="auth-input" placeholder="确认密码" autocomplete="new-password">
+                <div id="regError" class="auth-error"></div>
+                <button id="regBtn" class="auth-btn auth-btn-primary" onclick="doRegister()">注册</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Header -->
     <header class="shrink-0 bg-white border-b border-gray-200 shadow-sm z-10">
@@ -76,7 +128,13 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-gray-800 leading-tight">表格生成器</h1>
-                <p class="text-xs text-gray-400">对话式表格创建 · 纯本地处理</p>
+                <p class="text-xs text-gray-400">AI 驱动 · 对话式表格创建</p>
+            </div>
+            <div class="flex-1"></div>
+            <!-- User info (shown when logged in) -->
+            <div id="userInfo" class="user-info hidden">
+                <span id="userNickname" class="nickname"></span>
+                <span class="logout-btn" onclick="doLogout()">退出</span>
             </div>
             <button id="pwa-install-btn" style="display:none" class="p-2 rounded-lg hover:bg-black/5 transition-colors" title="添加到主屏幕"><svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m-8-8h16M12 4l-4 4m4-4l4 4"/></svg></button>
         </div>
@@ -106,13 +164,13 @@
                 <button id="manualBtn" class="shrink-0 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors" title="手动编辑">
                     <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
                 </button>
-                <input id="textMsg" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="描述表格 / 粘贴数据 / 回车发送...">
-                <button id="sendBtn" class="shrink-0 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-colors">
+                <input id="textMsg" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="描述表格 / 粘贴数据 / 回车发送..." disabled>
+                <button id="sendBtn" class="shrink-0 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-colors" disabled>
                     <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
                 </button>
                 <input type="file" id="fileInput" class="hidden" accept=".csv,.xlsx,.xls">
             </div>
-            <p class="text-center text-xs text-gray-300 mt-2">纯前端处理，数据不上传服务器 &copy; 2025 表格生成器</p>
+            <p class="text-center text-xs text-gray-300 mt-2">AI 驱动表格生成 &copy; 2025 表格生成器</p>
         </div>
     </footer>
 
@@ -139,6 +197,166 @@
     </div>
 
     <script>
+        // ===== Auth State =====
+        let authToken = localStorage.getItem('auth_token');
+        let currentUser = null;
+
+        // ===== Auth Functions =====
+        function switchAuthTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            } else {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+            // Clear errors
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('regError').textContent = '';
+        }
+
+        async function doLogin() {
+            const account = document.getElementById('loginAccount').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            if (!account || !password) { errorEl.textContent = '请输入账号和密码'; return; }
+            if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
+
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+            errorEl.textContent = '';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account, password }),
+                });
+                const data = await res.json();
+                if (!res.ok) { errorEl.textContent = data.error || '登录失败'; return; }
+
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('auth_token', authToken);
+                onLoginSuccess();
+            } catch (e) {
+                errorEl.textContent = '网络错误，请重试';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        async function doRegister() {
+            const account = document.getElementById('regAccount').value.trim();
+            const nickname = document.getElementById('regNickname').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const errorEl = document.getElementById('regError');
+            const btn = document.getElementById('regBtn');
+
+            if (!account || !password) { errorEl.textContent = '请输入账号和密码'; return; }
+            if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
+            if (password !== passwordConfirm) { errorEl.textContent = '两次密码不一致'; return; }
+
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+            errorEl.textContent = '';
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account, password, nickname }),
+                });
+                const data = await res.json();
+                if (!res.ok) { errorEl.textContent = data.error || '注册失败'; return; }
+
+                // Auto login after register
+                const loginRes = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account, password }),
+                });
+                const loginData = await loginRes.json();
+                if (loginRes.ok) {
+                    authToken = loginData.token;
+                    currentUser = loginData.user;
+                    localStorage.setItem('auth_token', authToken);
+                    onLoginSuccess();
+                }
+            } catch (e) {
+                errorEl.textContent = '网络错误，请重试';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '注册';
+            }
+        }
+
+        async function doLogout() {
+            if (authToken) {
+                try {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${authToken}` },
+                    });
+                } catch (e) {}
+            }
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('auth_token');
+            onLogoutSuccess();
+        }
+
+        function onLoginSuccess() {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('userInfo').classList.remove('hidden');
+            document.getElementById('userNickname').textContent = currentUser.nickname;
+            document.getElementById('textMsg').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+        }
+
+        function onLogoutSuccess() {
+            document.getElementById('authOverlay').classList.remove('hidden');
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('textMsg').disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+            // Clear forms
+            document.getElementById('loginAccount').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('regAccount').value = '';
+            document.getElementById('regNickname').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('regPasswordConfirm').value = '';
+            switchAuthTab('login');
+        }
+
+        async function checkAuth() {
+            if (!authToken) return false;
+            try {
+                const res = await fetch('/api/auth/check', {
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                });
+                const data = await res.json();
+                if (data.loggedIn) {
+                    currentUser = data.user;
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
         // ===== State =====
         let tableData = [];
         let editorTableId = 0;
@@ -202,7 +420,7 @@
         function removeTyping() { const el = document.getElementById('typingIndicator'); if (el) el.remove(); }
 
         // ===== Welcome =====
-        addBotMessage(`你好！我是表格助手 📊<br><br>你可以：<br>• 直接描述需要的表格（如「3行4列空白表格」）<br>• 粘贴逗号或 Tab 分隔的数据<br>• 上传 CSV / Excel 文件<br>• 点击左下角 📐 手动编辑<br><br><span class="text-gray-400 text-xs">所有数据在浏览器本地处理，不会上传。</span>`);
+        addBotMessage(`你好！我是 AI 表格助手 📊<br><br>你可以：<br>• 用自然语言描述需要的表格（如「帮我做一个项目预算表」）<br>• 粘贴逗号或 Tab 分隔的数据<br>• 上传 CSV / Excel 文件<br>• 点击左下角 📐 手动编辑<br><br><span class="text-gray-400 text-xs">AI 智能解析，秒级生成专业表格。</span>`);
 
         // ===== Table Rendering =====
         function renderTableHtml(data, editable, tableId) {
@@ -257,7 +475,6 @@
             return `${tableHtml}<div class="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-100"><span class="text-xs text-gray-400 mr-auto">${rows} 行 × ${cols} 列</span><button onclick="tableAction(${tid},'csv')" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg">📄 导出 CSV</button><button onclick="tableAction(${tid},'xlsx')" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg">📊 导出 Excel</button><button onclick="tableAction(${tid},'edit')" class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg">✏️ 全屏编辑</button></div>`;
         }
 
-        // Store table snapshots by id
         const tableSnapshots = {};
 
         function addTableToChat(data) {
@@ -277,7 +494,7 @@
             else if (action === 'edit') openEditor(data);
         }
 
-        // ===== Parse User Input =====
+        // ===== Parse User Input (for paste data, no AI) =====
         function parseText(text) {
             const lines = text.trim().split('\n');
             return lines.map(line => {
@@ -286,64 +503,135 @@
             });
         }
 
-        function parseNaturalLanguage(text) {
-            const t = text.toLowerCase();
-            // Match patterns like "3行4列", "3行4列空白表格", "3*4表格"
-            let m = text.match(/(\d+)\s*[行x×*]\s*(\d+)/);
-            if (!m) m = text.match(/(\d+)\s*列.*?(\d+)\s*行/);
-            if (m) {
-                const rows = parseInt(m[1]) || parseInt(m[2]);
-                const cols = parseInt(m[2]) || parseInt(m[1]);
-                if (rows > 0 && cols > 0 && rows <= 100 && cols <= 20) {
-                    return Array.from({length: rows}, () => Array(cols).fill(''));
-                }
+        function isPasteData(text) {
+            // Multi-line with commas or tabs
+            if (text.includes('\n') && (text.includes(',') || text.includes('\t'))) return true;
+            // Single line with commas/tabs and multiple values
+            if (!text.includes('\n') && (text.includes(',') || text.includes('\t'))) {
+                const parts = text.includes('\t') ? text.split('\t') : text.split(',');
+                if (parts.length > 1) return true;
             }
-            return null;
+            return false;
         }
 
         // ===== Handle User Input =====
-        function handleInput(text) {
+        async function handleInput(text) {
             if (!text.trim()) return;
             addUserMessage(text);
-            addTyping();
 
-            setTimeout(() => {
-                // Try natural language first
-                const nlTable = parseNaturalLanguage(text);
-                if (nlTable) {
-                    addTableToChat(nlTable);
-                    return;
-                }
-
-                // Check if it looks like delimited data (has commas or tabs with newlines)
-                if (text.includes('\n') && (text.includes(',') || text.includes('\t'))) {
+            // Check if it's pasted data (no AI needed)
+            if (isPasteData(text)) {
+                addTyping();
+                setTimeout(() => {
                     const data = parseText(text);
                     if (data.length > 0 && data[0].length > 0) {
                         addTableToChat(data);
-                        return;
+                    } else {
+                        removeTyping();
+                        addBotMessage('无法解析粘贴的数据，请检查格式。');
                     }
-                }
+                }, 300);
+                return;
+            }
 
-                // Single line with commas/tabs
-                if ((text.includes(',') || text.includes('\t')) && !text.includes('\n')) {
-                    const data = parseText(text);
-                    if (data.length > 0 && data[0].length > 1) {
-                        addTableToChat(data);
-                        return;
-                    }
-                }
+            // Natural language → call AI
+            addTyping();
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                    },
+                    body: JSON.stringify({ messages: text }),
+                });
 
-                // Fallback: create a single-column table
-                const lines = text.trim().split('\n');
-                if (lines.length > 1) {
-                    const data = lines.map(l => [l.trim()]);
-                    addTableToChat(data);
+                if (res.status === 401) {
+                    removeTyping();
+                    addBotMessage('⚠️ 登录已过期，请重新登录。');
+                    doLogout();
                     return;
                 }
 
+                if (!res.ok) {
+                    removeTyping();
+                    addBotMessage('❌ AI 服务暂时不可用，请稍后再试。');
+                    return;
+                }
+
+                // Handle SSE streaming
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = '';
+
+                // Create a streaming message bubble
+                editorTableId++;
+                const tid = editorTableId;
+                const streamDiv = document.createElement('div');
+                streamDiv.className = 'flex items-start gap-3 msg-in';
+                streamDiv.innerHTML = `
+                    <div class="shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                    </div>
+                    <div class="bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 px-4 py-3 max-w-[90%] text-sm text-gray-700 leading-relaxed">
+                        <div class="dot-typing"><span></span><span></span><span></span></div>
+                    </div>`;
+                chatMessages.appendChild(streamDiv);
+                scrollBottom();
+
+                const contentDiv = streamDiv.querySelector('.bg-white');
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                        const data = trimmed.substring(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.content) {
+                                fullContent += parsed.content;
+                                // Show streaming text preview
+                                contentDiv.innerHTML = `<pre class="whitespace-pre-wrap text-xs text-gray-500 font-mono">${escapeHtml(fullContent)}</pre>`;
+                                scrollBottom();
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                // Try to parse the AI response as JSON table
+                try {
+                    // Try to extract JSON from the response
+                    let jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const parsed = JSON.parse(jsonMatch[0]);
+                        if (parsed.headers && parsed.rows) {
+                            // Convert { headers, rows } to flat array
+                            const data = [parsed.headers, ...parsed.rows];
+                            tableData = JSON.parse(JSON.stringify(data));
+                            tableSnapshots[tid] = JSON.parse(JSON.stringify(data));
+                            contentDiv.innerHTML = buildTableMsg(data, tid);
+                            scrollBottom();
+                            return;
+                        }
+                    }
+                    // If JSON parse fails, show raw text
+                    contentDiv.innerHTML = `<div>${escapeHtml(fullContent)}</div><p class="text-xs text-gray-400 mt-2">AI 返回格式异常，请尝试更详细的描述。</p>`;
+                } catch (e) {
+                    contentDiv.innerHTML = `<div>${escapeHtml(fullContent)}</div><p class="text-xs text-gray-400 mt-2">AI 返回格式异常，请尝试更详细的描述。</p>`;
+                }
+            } catch (e) {
                 removeTyping();
-                addBotMessage(`我不太确定你想要的表格格式 😅 试试：<br>• 「3行4列空白表格」<br>• 粘贴逗号分隔的数据（如 姓名,年龄,城市）<br>• 上传 CSV / Excel 文件`);
-            }, 500);
+                addBotMessage('❌ 网络错误，请检查网络连接后重试。');
+            }
         }
 
         // ===== File Import =====
@@ -456,16 +744,23 @@
             if (files.length) importFile(files[0]);
         });
 
-        // Also sync tableSnapshots when editing in chat
-        const origCellEdited = cellEdited;
+        // Sync tableSnapshots when editing in chat
         window.cellEdited = function(el) {
-            origCellEdited(el);
-            // Update snapshot for the table
+            cellEdited(el);
             const tid = el.dataset.tid;
             if (tid && tableSnapshots[tid]) {
                 tableSnapshots[tid] = JSON.parse(JSON.stringify(tableData));
             }
         };
+
+        // ===== Init: Check Auth =====
+        (async function init() {
+            const loggedIn = await checkAuth();
+            if (loggedIn) {
+                onLoginSuccess();
+            }
+            // If not logged in, auth overlay remains visible and input stays disabled
+        })();
     </script>
     <script>
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(() => {}); }

@@ -30,545 +30,444 @@
         "description": "免费在线表格生成器，支持在线编辑、文本转表格、导入CSV/Excel文件，导出CSV和Excel格式。",
         "applicationCategory": "UtilityApplication",
         "operatingSystem": "Web Browser",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "CNY"
-        }
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
     }
     </script>
     <style>
-        [contenteditable]:focus {
-            outline: 2px solid #3B82F6;
-            outline-offset: -2px;
-            background-color: #EFF6FF;
-        }
-        [contenteditable]:hover {
-            background-color: #F8FAFC;
-        }
-        .tab-active {
-            border-bottom: 3px solid #3B82F6;
-            color: #3B82F6;
-            font-weight: 600;
-        }
-        .btn-primary {
-            background-color: #3B82F6;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            transition: background-color 0.2s;
-        }
-        .btn-primary:hover {
-            background-color: #2563EB;
-        }
-        .btn-secondary {
-            background-color: #F1F5F9;
-            color: #475569;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            transition: background-color 0.2s;
-        }
-        .btn-secondary:hover {
-            background-color: #E2E8F0;
-        }
-        .btn-danger {
-            background-color: #FEE2E2;
-            color: #DC2626;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            transition: background-color 0.2s;
-        }
-        .btn-danger:hover {
-            background-color: #FECACA;
-        }
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 0.25rem;
-            background: white;
-            border: 1px solid #E2E8F0;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            z-index: 50;
-            min-width: 160px;
-        }
-        .dropdown-menu.show {
-            display: block;
-        }
-        .dropdown-item {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            color: #374151;
-            cursor: pointer;
-            display: block;
-            width: 100%;
-            text-align: left;
-            border: none;
-            background: none;
-        }
-        .dropdown-item:hover {
-            background-color: #F1F5F9;
-        }
-        .table-container {
-            overflow-x: auto;
-            border: 1px solid #E2E8F0;
-            border-radius: 0.5rem;
-            background: white;
-        }
-        .table-container table {
-            border-collapse: collapse;
-            width: 100%;
-            min-width: 100%;
-        }
-        .table-container th,
-        .table-container td {
-            border: 1px solid #E2E8F0;
-            padding: 0.5rem 0.75rem;
-            text-align: left;
-            min-width: 100px;
-            font-size: 0.875rem;
-        }
-        .table-container thead th {
-            background-color: #F8FAFC;
-            font-weight: 600;
-            color: #374151;
-            position: sticky;
-            top: 0;
-        }
-        .table-container tbody td {
-            color: #1F2937;
-        }
-        .table-container tbody tr:hover {
-            background-color: #F8FAFC;
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .msg-in { animation: msgIn 0.3s ease-out; }
+        @keyframes msgIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        .dot-typing { display: inline-flex; gap: 4px; align-items: center; }
+        .dot-typing span { width: 6px; height: 6px; background: #9ca3af; border-radius: 50%; animation: dotBounce 1.2s infinite; }
+        .dot-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .dot-typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dotBounce { 0%,80%,100% { transform: scale(0.6); opacity:0.4; } 40% { transform: scale(1); opacity:1; } }
+        .drop-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(59,130,246,0.12); border: 3px dashed #3b82f6; display: none; align-items: center; justify-content: center; }
+        .drop-overlay.active { display: flex; }
+        /* In-chat table styles */
+        .chat-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .chat-table th, .chat-table td { border: 1px solid #d1d5db; padding: 4px 8px; text-align: left; min-width: 60px; font-size: 0.8rem; }
+        .chat-table thead th { background: #f1f5f9; font-weight: 600; color: #374151; }
+        .chat-table tbody td { color: #1f2937; }
+        .chat-table [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: -2px; background: #eff6ff; }
+        .chat-table [contenteditable]:hover { background: #f8fafc; }
+        /* Fullscreen editor */
+        #fullEditor { display: none; position: fixed; inset: 0; z-index: 200; background: #f9fafb; flex-direction: column; }
+        #fullEditor.active { display: flex; }
+        #fullEditor .editor-table { border-collapse: collapse; width: 100%; }
+        #fullEditor .editor-table th, #fullEditor .editor-table td { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; min-width: 100px; font-size: 0.875rem; }
+        #fullEditor .editor-table thead th { background: #f8fafc; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 1; }
+        #fullEditor [contenteditable]:focus { outline: 2px solid #3b82f6; outline-offset: -2px; background: #eff6ff; }
+        #fullEditor [contenteditable]:hover { background: #f8fafc; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gray-50 h-screen flex flex-col overflow-hidden">
+
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18M7 6v12M17 6v12"></path>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold text-gray-900">表格生成器</h1>
-                    <p class="text-xs text-gray-500">快速创建、编辑、导入导出表格数据</p>
-                </div>
+    <header class="shrink-0 bg-white border-b border-gray-200 shadow-sm z-10">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18M7 6v12M17 6v12"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-800 leading-tight">表格生成器</h1>
+                <p class="text-xs text-gray-400">对话式表格创建 · 纯本地处理</p>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Tabs -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-1 mb-4">
-            <div class="flex space-x-1">
-                <button onclick="switchTab('edit')" id="tab-edit" class="tab-btn flex-1 py-3 px-4 text-sm rounded-lg transition-all duration-200 tab-active">
-                    📝 在线编辑
+    <!-- Chat Area -->
+    <div id="chatArea" class="flex-1 overflow-y-auto chat-scroll px-4 py-6">
+        <div class="max-w-3xl mx-auto space-y-4" id="chatMessages"></div>
+    </div>
+
+    <!-- Drop Overlay -->
+    <div id="dropOverlay" class="drop-overlay">
+        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <svg class="w-16 h-16 mx-auto text-blue-500 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p class="text-lg font-semibold text-blue-600">释放文件即可导入</p>
+            <p class="text-sm text-gray-400 mt-1">支持 CSV / Excel 文件</p>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="shrink-0 bg-white border-t border-gray-200">
+        <div class="max-w-3xl mx-auto px-4 py-3">
+            <div class="flex items-center gap-2">
+                <button id="uploadBtn" class="shrink-0 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors" title="上传 CSV/Excel">
+                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </button>
-                <button onclick="switchTab('text')" id="tab-text" class="tab-btn flex-1 py-3 px-4 text-sm rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">
-                    📋 文本转表格
+                <button id="manualBtn" class="shrink-0 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors" title="手动编辑">
+                    <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
                 </button>
-                <button onclick="switchTab('import')" id="tab-import" class="tab-btn flex-1 py-3 px-4 text-sm rounded-lg transition-all duration-200 text-gray-500 hover:text-gray-700">
-                    📂 导入文件
+                <input id="textMsg" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="描述表格 / 粘贴数据 / 回车发送...">
+                <button id="sendBtn" class="shrink-0 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
                 </button>
+                <input type="file" id="fileInput" class="hidden" accept=".csv,.xlsx,.xls">
             </div>
-        </div>
-
-        <!-- Tab: Online Edit -->
-        <div id="panel-edit" class="tab-panel fade-in">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <p class="text-sm text-gray-500 mb-3">直接在单元格中点击编辑，使用下方按钮增删行列</p>
-                <div id="table-edit-container" class="table-container max-h-[500px] overflow-auto"></div>
-            </div>
-        </div>
-
-        <!-- Tab: Text to Table -->
-        <div id="panel-text" class="tab-panel hidden fade-in">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <p class="text-sm text-gray-500 mb-3">粘贴逗号分隔（CSV）或 Tab 分隔的文本，自动生成表格</p>
-                <textarea id="text-input" class="w-full h-48 p-4 border border-gray-300 rounded-lg text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="粘贴数据，例如：&#10;姓名,年龄,城市&#10;张三,28,北京&#10;李四,32,上海&#10;王五,25,广州&#10;&#10;或 Tab 分隔：&#10;姓名	年龄	城市&#10;张三	28	北京"></textarea>
-                <div class="mt-3 flex space-x-3">
-                    <button onclick="convertText()" class="btn-primary">
-                        🔄 生成表格
-                    </button>
-                    <button onclick="document.getElementById('text-input').value=''" class="btn-secondary">
-                        🗑️ 清空
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab: Import File -->
-        <div id="panel-import" class="tab-panel hidden fade-in">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <p class="text-sm text-gray-500 mb-3">上传 CSV 或 Excel (.xlsx) 文件，自动解析为可编辑表格</p>
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition-colors cursor-pointer" onclick="document.getElementById('file-input').click()">
-                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    <p class="text-gray-600 font-medium">点击选择文件或拖拽文件到此处</p>
-                    <p class="text-gray-400 text-sm mt-1">支持 CSV、Excel (.xlsx) 格式</p>
-                </div>
-                <input type="file" id="file-input" class="hidden" accept=".csv,.xlsx,.xls" onchange="handleFileImport(event)">
-            </div>
-        </div>
-
-        <!-- Action Bar -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mt-4">
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500 font-medium">行列操作：</span>
-                    <button onclick="addRow()" class="btn-primary" title="在末尾添加一行">+ 行</button>
-                    <button onclick="addColumn()" class="btn-primary" title="在末尾添加一列">+ 列</button>
-                    <button onclick="deleteLastRow()" class="btn-danger" title="删除最后一行">- 行</button>
-                    <button onclick="deleteLastColumn()" class="btn-danger" title="删除最后一列">- 列</button>
-                </div>
-                <div class="flex-1"></div>
-                <div class="relative">
-                    <button onclick="toggleExportMenu()" class="btn-primary flex items-center gap-1">
-                        📥 导出
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div id="export-menu" class="dropdown-menu">
-                        <button class="dropdown-item" onclick="exportCSV()">📄 导出 CSV</button>
-                        <button class="dropdown-item" onclick="exportExcel()">📊 导出 Excel (.xlsx)</button>
-                    </div>
-                </div>
-                <button onclick="clearTable()" class="btn-secondary" title="清空表格数据">🗑️ 清空</button>
-            </div>
-        </div>
-
-        <!-- Table Preview (below action bar for all tabs) -->
-        <div id="preview-section" class="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4 hidden">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold text-gray-700">📋 表格预览</h3>
-                <span id="table-info" class="text-xs text-gray-400"></span>
-            </div>
-            <div id="table-preview-container" class="table-container max-h-[400px] overflow-auto"></div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-500">
-                <p>© 2025 表格生成器 · 纯前端处理，数据不上传服务器</p>
-                <p class="mt-1 sm:mt-0">Built with ❤️ for productivity</p>
-            </div>
+            <p class="text-center text-xs text-gray-300 mt-2">纯前端处理，数据不上传服务器 &copy; 2025 表格生成器</p>
         </div>
     </footer>
+
+    <!-- Fullscreen Editor -->
+    <div id="fullEditor">
+        <div class="shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 flex-wrap">
+            <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            </div>
+            <span class="font-bold text-gray-800">表格编辑模式</span>
+            <div class="flex-1"></div>
+            <button onclick="editorAddRow()" class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600">+ 行</button>
+            <button onclick="editorAddCol()" class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600">+ 列</button>
+            <button onclick="editorDelRow()" class="px-3 py-1.5 bg-red-100 text-red-600 text-sm rounded-lg hover:bg-red-200">- 行</button>
+            <button onclick="editorDelCol()" class="px-3 py-1.5 bg-red-100 text-red-600 text-sm rounded-lg hover:bg-red-200">- 列</button>
+            <div class="w-px h-6 bg-gray-300"></div>
+            <button onclick="editorExportCSV()" class="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">导出 CSV</button>
+            <button onclick="editorExportExcel()" class="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200">导出 Excel</button>
+            <button onclick="editorDone()" class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 font-medium">✓ 完成</button>
+        </div>
+        <div class="flex-1 overflow-auto p-4">
+            <div id="editorTableContainer"></div>
+        </div>
+    </div>
 
     <script>
         // ===== State =====
         let tableData = [];
-        const DEFAULT_ROWS = 5;
-        const DEFAULT_COLS = 5;
+        let editorTableId = 0;
+        const DEFAULT_ROWS = 5, DEFAULT_COLS = 5;
 
-        // ===== Init =====
-        function init() {
-            tableData = Array.from({ length: DEFAULT_ROWS }, () => Array(DEFAULT_COLS).fill(''));
-            renderTable();
+        // ===== DOM =====
+        const chatMessages = document.getElementById('chatMessages');
+        const chatArea = document.getElementById('chatArea');
+        const textMsg = document.getElementById('textMsg');
+        const sendBtn = document.getElementById('sendBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const manualBtn = document.getElementById('manualBtn');
+        const fileInput = document.getElementById('fileInput');
+        const dropOverlay = document.getElementById('dropOverlay');
+
+        // ===== Helpers =====
+        function scrollBottom() { chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' }); }
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function formatSize(b) { return b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB'; }
+        function getColLetter(i) { let r=''; let n=i; do { r=String.fromCharCode(65+(n%26))+r; n=Math.floor(n/26)-1; } while(n>=0); return r; }
+
+        function addBotMessage(html) {
+            const div = document.createElement('div');
+            div.className = 'flex items-start gap-3 msg-in';
+            div.innerHTML = `
+                <div class="shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                    <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                </div>
+                <div class="bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 px-4 py-3 max-w-[90%] text-sm text-gray-700 leading-relaxed">${html}</div>`;
+            chatMessages.appendChild(div);
+            scrollBottom();
+            return div;
         }
 
-        // ===== Tab Switching =====
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('tab-active');
-                btn.classList.add('text-gray-500');
-            });
-            document.querySelectorAll('.tab-panel').forEach(panel => {
-                panel.classList.add('hidden');
-            });
-            document.getElementById('tab-' + tab).classList.add('tab-active');
-            document.getElementById('tab-' + tab).classList.remove('text-gray-500');
-            const panel = document.getElementById('panel-' + tab);
-            panel.classList.remove('hidden');
-            panel.classList.add('fade-in');
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'flex items-start gap-3 justify-end msg-in';
+            div.innerHTML = `
+                <div class="bg-blue-500 text-white rounded-2xl rounded-tr-sm shadow-sm px-4 py-3 max-w-[85%] text-sm leading-relaxed break-all">${escapeHtml(text)}</div>
+                <div class="shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mt-0.5">
+                    <svg class="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>`;
+            chatMessages.appendChild(div);
+            scrollBottom();
         }
 
-        // ===== Render Table =====
-        function renderTable() {
-            if (tableData.length === 0) {
-                document.getElementById('table-edit-container').innerHTML = '<p class="text-gray-400 text-sm p-4 text-center">暂无数据，请添加行列或导入数据</p>';
-                updatePreview();
-                return;
-            }
-            const maxCols = Math.max(...tableData.map(r => r.length));
-            let html = '<table><thead><tr>';
-            html += '<th class="text-center text-xs text-gray-400 w-10">#</th>';
-            for (let c = 0; c < maxCols; c++) {
-                html += `<th class="text-center">${getColLetter(c)}</th>`;
-            }
+        function addTyping() {
+            const div = document.createElement('div');
+            div.id = 'typingIndicator';
+            div.className = 'flex items-start gap-3 msg-in';
+            div.innerHTML = `
+                <div class="shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
+                    <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                </div>
+                <div class="bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 px-4 py-3">
+                    <div class="dot-typing"><span></span><span></span><span></span></div>
+                </div>`;
+            chatMessages.appendChild(div);
+            scrollBottom();
+        }
+        function removeTyping() { const el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+        // ===== Welcome =====
+        addBotMessage(`你好！我是表格助手 📊<br><br>你可以：<br>• 直接描述需要的表格（如「3行4列空白表格」）<br>• 粘贴逗号或 Tab 分隔的数据<br>• 上传 CSV / Excel 文件<br>• 点击左下角 📐 手动编辑<br><br><span class="text-gray-400 text-xs">所有数据在浏览器本地处理，不会上传。</span>`);
+
+        // ===== Table Rendering =====
+        function renderTableHtml(data, editable, tableId) {
+            if (!data.length) return '<p class="text-gray-400 text-xs">表格为空</p>';
+            const maxCols = Math.max(...data.map(r => r.length));
+            let html = '<div class="overflow-x-auto max-h-64 rounded-lg border border-gray-200"><table class="chat-table"><thead><tr>';
+            html += '<th class="text-center text-xs text-gray-400 w-8 bg-gray-50">#</th>';
+            for (let c = 0; c < maxCols; c++) html += `<th class="text-center">${getColLetter(c)}</th>`;
             html += '</tr></thead><tbody>';
-            for (let r = 0; r < tableData.length; r++) {
-                html += `<tr><td class="text-center text-xs text-gray-400 bg-gray-50">${r + 1}</td>`;
+            for (let r = 0; r < data.length; r++) {
+                html += `<tr><td class="text-center text-xs text-gray-400 bg-gray-50">${r+1}</td>`;
                 for (let c = 0; c < maxCols; c++) {
-                    const val = (tableData[r] && tableData[r][c] !== undefined) ? tableData[r][c] : '';
-                    html += `<td contenteditable="true" data-row="${r}" data-col="${c}" onblur="cellEdited(this)" onkeydown="cellKeydown(event, this)">${escapeHtml(String(val))}</td>`;
+                    const val = (data[r] && data[r][c] !== undefined) ? data[r][c] : '';
+                    if (editable) {
+                        html += `<td contenteditable="true" data-tid="${tableId}" data-row="${r}" data-col="${c}" onblur="cellEdited(this)" onkeydown="cellKeydown(event,this)">${escapeHtml(String(val))}</td>`;
+                    } else {
+                        html += `<td>${escapeHtml(String(val))}</td>`;
+                    }
                 }
                 html += '</tr>';
             }
-            html += '</tbody></table>';
-            document.getElementById('table-edit-container').innerHTML = html;
-            updatePreview();
+            html += '</tbody></table></div>';
+            return html;
         }
 
-        function updatePreview() {
-            const section = document.getElementById('preview-section');
-            const info = document.getElementById('table-info');
-            if (tableData.length === 0) {
-                section.classList.add('hidden');
-                return;
-            }
-            section.classList.remove('hidden');
-            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : 0;
-            info.textContent = `${tableData.length} 行 × ${maxCols} 列`;
-
-            // Preview is the same as edit table but non-editable display
-            let html = '<table><thead><tr>';
-            for (let c = 0; c < maxCols; c++) {
-                html += `<th>${getColLetter(c)}</th>`;
-            }
-            html += '</tr></thead><tbody>';
-            for (let r = 0; r < tableData.length; r++) {
-                html += '<tr>';
-                for (let c = 0; c < maxCols; c++) {
-                    const val = (tableData[r] && tableData[r][c] !== undefined) ? tableData[r][c] : '';
-                    html += `<td>${escapeHtml(String(val))}</td>`;
-                }
-                html += '</tr>';
-            }
-            html += '</tbody></table>';
-            document.getElementById('table-preview-container').innerHTML = html;
-        }
-
-        // ===== Cell Editing =====
         function cellEdited(el) {
-            const row = parseInt(el.dataset.row);
-            const col = parseInt(el.dataset.col);
-            if (tableData[row]) {
-                tableData[row][col] = el.textContent;
-            }
-            updatePreview();
+            const tid = el.dataset.tid;
+            const r = parseInt(el.dataset.row), c = parseInt(el.dataset.col);
+            if (tableData[r]) tableData[r][c] = el.textContent;
         }
 
         function cellKeydown(e, el) {
-            const row = parseInt(el.dataset.row);
-            const col = parseInt(el.dataset.col);
+            const r = parseInt(el.dataset.row), c = parseInt(el.dataset.col);
+            const tid = el.dataset.tid;
             if (e.key === 'Tab') {
                 e.preventDefault();
-                const nextCol = e.shiftKey ? col - 1 : col + 1;
-                if (nextCol >= 0 && nextCol < (tableData[row] ? tableData[row].length : 0)) {
-                    const next = document.querySelector(`td[data-row="${row}"][data-col="${nextCol}"]`);
-                    if (next) next.focus();
-                }
+                const nc = e.shiftKey ? c-1 : c+1;
+                const next = document.querySelector(`td[data-tid="${tid}"][data-row="${r}"][data-col="${nc}"]`);
+                if (next) next.focus();
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                const nextRow = row + 1;
-                if (nextRow < tableData.length) {
-                    const next = document.querySelector(`td[data-row="${nextRow}"][data-col="${col}"]`);
-                    if (next) next.focus();
-                }
+                const nr = r+1;
+                const next = document.querySelector(`td[data-tid="${tid}"][data-row="${nr}"][data-col="${c}"]`);
+                if (next) next.focus();
             }
         }
 
-        // ===== Row/Column Operations =====
-        function addRow() {
-            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : DEFAULT_COLS;
-            tableData.push(Array(maxCols).fill(''));
-            renderTable();
+        // ===== Table Actions in Chat =====
+        function buildTableMsg(data, tid) {
+            const tableHtml = renderTableHtml(data, true, tid);
+            const rows = data.length, cols = data.length ? Math.max(...data.map(r=>r.length)) : 0;
+            return `${tableHtml}<div class="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-100"><span class="text-xs text-gray-400 mr-auto">${rows} 行 × ${cols} 列</span><button onclick="tableAction(${tid},'csv')" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg">📄 导出 CSV</button><button onclick="tableAction(${tid},'xlsx')" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded-lg">📊 导出 Excel</button><button onclick="tableAction(${tid},'edit')" class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg">✏️ 全屏编辑</button></div>`;
         }
 
-        function addColumn() {
-            tableData.forEach(row => row.push(''));
-            renderTable();
+        // Store table snapshots by id
+        const tableSnapshots = {};
+
+        function addTableToChat(data) {
+            editorTableId++;
+            const tid = editorTableId;
+            tableData = JSON.parse(JSON.stringify(data));
+            tableSnapshots[tid] = JSON.parse(JSON.stringify(data));
+            removeTyping();
+            addBotMessage(buildTableMsg(data, tid));
         }
 
-        function deleteLastRow() {
-            if (tableData.length > 1) {
-                tableData.pop();
-                renderTable();
-            }
+        function tableAction(tid, action) {
+            const data = tableSnapshots[tid];
+            if (!data) return;
+            if (action === 'csv') exportCSV(data);
+            else if (action === 'xlsx') exportExcel(data);
+            else if (action === 'edit') openEditor(data);
         }
 
-        function deleteLastColumn() {
-            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : 0;
-            if (maxCols > 1) {
-                tableData.forEach(row => row.pop());
-                renderTable();
-            }
-        }
-
-        function clearTable() {
-            if (confirm('确定要清空所有表格数据吗？')) {
-                tableData = Array.from({ length: DEFAULT_ROWS }, () => Array(DEFAULT_COLS).fill(''));
-                renderTable();
-            }
-        }
-
-        // ===== Text to Table =====
-        function convertText() {
-            const text = document.getElementById('text-input').value;
-            if (!text.trim()) {
-                alert('请先粘贴文本数据');
-                return;
-            }
-            textToTable(text);
-            switchTab('edit');
-        }
-
-        function textToTable(text) {
+        // ===== Parse User Input =====
+        function parseText(text) {
             const lines = text.trim().split('\n');
-            tableData = lines.map(line => {
+            return lines.map(line => {
                 if (line.includes('\t')) return line.split('\t');
                 return line.split(',').map(s => s.trim());
             });
-            renderTable();
+        }
+
+        function parseNaturalLanguage(text) {
+            const t = text.toLowerCase();
+            // Match patterns like "3行4列", "3行4列空白表格", "3*4表格"
+            let m = text.match(/(\d+)\s*[行x×*]\s*(\d+)/);
+            if (!m) m = text.match(/(\d+)\s*列.*?(\d+)\s*行/);
+            if (m) {
+                const rows = parseInt(m[1]) || parseInt(m[2]);
+                const cols = parseInt(m[2]) || parseInt(m[1]);
+                if (rows > 0 && cols > 0 && rows <= 100 && cols <= 20) {
+                    return Array.from({length: rows}, () => Array(cols).fill(''));
+                }
+            }
+            return null;
+        }
+
+        // ===== Handle User Input =====
+        function handleInput(text) {
+            if (!text.trim()) return;
+            addUserMessage(text);
+            addTyping();
+
+            setTimeout(() => {
+                // Try natural language first
+                const nlTable = parseNaturalLanguage(text);
+                if (nlTable) {
+                    addTableToChat(nlTable);
+                    return;
+                }
+
+                // Check if it looks like delimited data (has commas or tabs with newlines)
+                if (text.includes('\n') && (text.includes(',') || text.includes('\t'))) {
+                    const data = parseText(text);
+                    if (data.length > 0 && data[0].length > 0) {
+                        addTableToChat(data);
+                        return;
+                    }
+                }
+
+                // Single line with commas/tabs
+                if ((text.includes(',') || text.includes('\t')) && !text.includes('\n')) {
+                    const data = parseText(text);
+                    if (data.length > 0 && data[0].length > 1) {
+                        addTableToChat(data);
+                        return;
+                    }
+                }
+
+                // Fallback: create a single-column table
+                const lines = text.trim().split('\n');
+                if (lines.length > 1) {
+                    const data = lines.map(l => [l.trim()]);
+                    addTableToChat(data);
+                    return;
+                }
+
+                removeTyping();
+                addBotMessage(`我不太确定你想要的表格格式 😅 试试：<br>• 「3行4列空白表格」<br>• 粘贴逗号分隔的数据（如 姓名,年龄,城市）<br>• 上传 CSV / Excel 文件`);
+            }, 500);
         }
 
         // ===== File Import =====
-        function handleFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            importFile(file);
-            event.target.value = '';
-        }
-
         function importFile(file) {
+            addUserMessage(`📎 ${file.name} (${formatSize(file.size)})`);
+            addTyping();
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const wb = XLSX.read(data, { type: 'array' });
                     const ws = wb.Sheets[wb.SheetNames[0]];
-                    tableData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-                    // Ensure no empty rows
-                    tableData = tableData.filter(row => row.some(cell => cell !== ''));
-                    renderTable();
-                    switchTab('edit');
+                    let parsed = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                    parsed = parsed.filter(row => row.some(cell => cell !== ''));
+                    setTimeout(() => addTableToChat(parsed), 500);
                 } catch (err) {
-                    alert('文件解析失败：' + err.message);
+                    removeTyping();
+                    addBotMessage(`❌ 文件解析失败：${err.message}`);
                 }
             };
             reader.readAsArrayBuffer(file);
         }
 
         // ===== Export =====
-        function getTableDataForExport() {
-            const maxCols = tableData.length > 0 ? Math.max(...tableData.map(r => r.length)) : 0;
-            return tableData.map(row => {
-                const padded = [...row];
-                while (padded.length < maxCols) padded.push('');
-                return padded;
-            });
+        function getExportData(data) {
+            const maxCols = Math.max(...data.map(r => r.length));
+            return data.map(row => { const p = [...row]; while(p.length < maxCols) p.push(''); return p; });
         }
-
-        function exportExcel() {
-            if (tableData.length === 0) { alert('表格为空，无法导出'); return; }
-            const exportData = getTableDataForExport();
-            const ws = XLSX.utils.aoa_to_sheet(exportData);
+        function downloadBlob(blob, name) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = name;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        function exportCSV(data) {
+            if (!data.length) return;
+            const ed = getExportData(data);
+            const ws = XLSX.utils.aoa_to_sheet(ed);
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), '表格.csv');
+        }
+        function exportExcel(data) {
+            if (!data.length) return;
+            const ed = getExportData(data);
+            const ws = XLSX.utils.aoa_to_sheet(ed);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
             XLSX.writeFile(wb, '表格.xlsx');
-            closeExportMenu();
         }
 
-        function exportCSV() {
-            if (tableData.length === 0) { alert('表格为空，无法导出'); return; }
-            const exportData = getTableDataForExport();
-            const ws = XLSX.utils.aoa_to_sheet(exportData);
-            const csv = XLSX.utils.sheet_to_csv(ws);
-            downloadBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), '表格.csv');
-            closeExportMenu();
+        // ===== Fullscreen Editor =====
+        function openEditor(data) {
+            tableData = JSON.parse(JSON.stringify(data));
+            document.getElementById('fullEditor').classList.add('active');
+            renderEditor();
         }
-
-        function downloadBlob(blob, filename) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        function editorDone() {
+            document.getElementById('fullEditor').classList.remove('active');
+            addBotMessage('✅ 已退出编辑模式。你可以继续描述新表格或导出数据。');
         }
-
-        // ===== Export Menu =====
-        function toggleExportMenu() {
-            const menu = document.getElementById('export-menu');
-            menu.classList.toggle('show');
-        }
-
-        function closeExportMenu() {
-            document.getElementById('export-menu').classList.remove('show');
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.relative')) {
-                closeExportMenu();
+        function renderEditor() {
+            const container = document.getElementById('editorTableContainer');
+            if (!tableData.length) { container.innerHTML = '<p class="text-gray-400 text-sm p-4">暂无数据</p>'; return; }
+            const maxCols = Math.max(...tableData.map(r => r.length));
+            let html = '<table class="editor-table"><thead><tr><th class="text-center text-xs text-gray-400 w-10">#</th>';
+            for (let c = 0; c < maxCols; c++) html += `<th class="text-center">${getColLetter(c)}</th>`;
+            html += '</tr></thead><tbody>';
+            for (let r = 0; r < tableData.length; r++) {
+                html += `<tr><td class="text-center text-xs text-gray-400 bg-gray-50">${r+1}</td>`;
+                for (let c = 0; c < maxCols; c++) {
+                    const val = (tableData[r] && tableData[r][c] !== undefined) ? tableData[r][c] : '';
+                    html += `<td contenteditable="true" data-erow="${r}" data-ecol="${c}" onblur="editorCellEdit(this)" onkeydown="cellKeydown(event,this)">${escapeHtml(String(val))}</td>`;
+                }
+                html += '</tr>';
             }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        function editorCellEdit(el) {
+            const r = parseInt(el.dataset.erow), c = parseInt(el.dataset.ecol);
+            if (tableData[r]) tableData[r][c] = el.textContent;
+        }
+        function editorAddRow() { const mc = tableData.length ? Math.max(...tableData.map(r=>r.length)) : DEFAULT_COLS; tableData.push(Array(mc).fill('')); renderEditor(); }
+        function editorAddCol() { tableData.forEach(r => r.push('')); renderEditor(); }
+        function editorDelRow() { if (tableData.length > 1) { tableData.pop(); renderEditor(); } }
+        function editorDelCol() { const mc = tableData.length ? Math.max(...tableData.map(r=>r.length)) : 0; if (mc > 1) { tableData.forEach(r => r.pop()); renderEditor(); } }
+        function editorExportCSV() { exportCSV(tableData); }
+        function editorExportExcel() { exportExcel(tableData); }
+
+        // ===== Event Listeners =====
+        sendBtn.addEventListener('click', () => { const v = textMsg.value.trim(); if (v) { handleInput(v); textMsg.value = ''; } });
+        textMsg.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); } });
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) importFile(e.target.files[0]); e.target.value = ''; });
+
+        manualBtn.addEventListener('click', () => {
+            if (!tableData.length) tableData = Array.from({length: DEFAULT_ROWS}, () => Array(DEFAULT_COLS).fill(''));
+            openEditor(tableData);
         });
 
-        // ===== Drag & Drop =====
-        const dropZone = document.querySelector('[onclick*="file-input"]');
-        if (dropZone) {
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('border-blue-400', 'bg-blue-50');
-            });
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-            });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('border-blue-400', 'bg-blue-50');
-                const file = e.dataTransfer.files[0];
-                if (file) importFile(file);
-            });
-        }
+        // Global drag & drop
+        let dragCounter = 0;
+        document.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; dropOverlay.classList.add('active'); });
+        document.addEventListener('dragleave', (e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; dropOverlay.classList.remove('active'); } });
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => {
+            e.preventDefault(); dragCounter = 0; dropOverlay.classList.remove('active');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.name.match(/\.(csv|xlsx|xls)$/i));
+            if (files.length) importFile(files[0]);
+        });
 
-        // ===== Utility =====
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
-
-        function getColLetter(index) {
-            let result = '';
-            let n = index;
-            do {
-                result = String.fromCharCode(65 + (n % 26)) + result;
-                n = Math.floor(n / 26) - 1;
-            } while (n >= 0);
-            return result;
-        }
-
-        // ===== Start =====
-        init();
+        // Also sync tableSnapshots when editing in chat
+        const origCellEdited = cellEdited;
+        window.cellEdited = function(el) {
+            origCellEdited(el);
+            // Update snapshot for the table
+            const tid = el.dataset.tid;
+            if (tid && tableSnapshots[tid]) {
+                tableSnapshots[tid] = JSON.parse(JSON.stringify(tableData));
+            }
+        };
     </script>
     <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(() => {}); }
     </script>
 </body>
 </html>

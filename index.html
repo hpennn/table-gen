@@ -78,6 +78,7 @@
                 <h1 class="text-lg font-bold text-gray-800 leading-tight">表格生成器</h1>
                 <p class="text-xs text-gray-400">对话式表格创建 · 纯本地处理</p>
             </div>
+            <button id="pwa-install-btn" style="display:none" class="p-2 rounded-lg hover:bg-black/5 transition-colors" title="添加到主屏幕"><svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m-8-8h16M12 4l-4 4m4-4l4 4"/></svg></button>
         </div>
     </header>
 
@@ -469,5 +470,30 @@
     <script>
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(() => {}); }
     </script>
+<script>
+(function(){
+  let deferredPrompt;
+  const installBtn = document.getElementById('pwa-install-btn');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.style.display = 'flex';
+  });
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+  }
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    if (installBtn) installBtn.style.display = 'none';
+  }
+})();
+</script>
 </body>
 </html>

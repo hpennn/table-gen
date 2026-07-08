@@ -82,8 +82,8 @@
 </head>
 <body class="bg-gray-50 h-screen flex flex-col overflow-hidden">
 
-    <!-- Auth Modal -->
-    <div id="authOverlay" class="auth-overlay">
+    <!-- Auth Modal (hidden by default, shown when unauthenticated user triggers AI) -->
+    <div id="authOverlay" class="auth-overlay hidden">
         <div class="auth-modal">
             <div class="px-6 pt-5 pb-2 text-center">
                 <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -164,8 +164,8 @@
                 <button id="manualBtn" class="shrink-0 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors" title="手动编辑">
                     <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
                 </button>
-                <input id="textMsg" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="描述表格 / 粘贴数据 / 回车发送..." disabled>
-                <button id="sendBtn" class="shrink-0 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-colors" disabled>
+                <input id="textMsg" type="text" class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="描述表格 / 粘贴数据 / 回车发送...">
+                <button id="sendBtn" class="shrink-0 w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-xl flex items-center justify-center transition-colors">
                     <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
                 </button>
                 <input type="file" id="fileInput" class="hidden" accept=".csv,.xlsx,.xls">
@@ -200,6 +200,7 @@
         // ===== Auth State =====
         let authToken = localStorage.getItem('auth_token');
         let currentUser = null;
+        let pendingAction = null; // Stores a callback to execute after login
 
         // ===== Auth Functions =====
         function switchAuthTab(tab) {
@@ -323,15 +324,17 @@
             document.getElementById('authOverlay').classList.add('hidden');
             document.getElementById('userInfo').classList.remove('hidden');
             document.getElementById('userNickname').textContent = currentUser.nickname;
-            document.getElementById('textMsg').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
+            // Execute pending action if any (user triggered AI before login)
+            if (pendingAction) {
+                const action = pendingAction;
+                pendingAction = null;
+                setTimeout(() => action(), 100);
+            }
         }
 
         function onLogoutSuccess() {
-            document.getElementById('authOverlay').classList.remove('hidden');
+            // Don't show auth overlay or disable inputs — user can still browse freely
             document.getElementById('userInfo').classList.add('hidden');
-            document.getElementById('textMsg').disabled = true;
-            document.getElementById('sendBtn').disabled = true;
             // Clear forms
             document.getElementById('loginAccount').value = '';
             document.getElementById('loginPassword').value = '';
@@ -534,7 +537,18 @@
                 return;
             }
 
-            // Natural language → call AI
+            // Natural language → need AI → check login first
+            if (!authToken) {
+                // Show auth modal; save this action to resume after login
+                pendingAction = () => callAI(text);
+                document.getElementById('authOverlay').classList.remove('hidden');
+                return;
+            }
+
+            await callAI(text);
+        }
+
+        async function callAI(text) {
             addTyping();
             try {
                 const res = await fetch('/api/chat', {
@@ -550,6 +564,8 @@
                     removeTyping();
                     addBotMessage('⚠️ 登录已过期，请重新登录。');
                     doLogout();
+                    // Show auth modal so user can re-login
+                    document.getElementById('authOverlay').classList.remove('hidden');
                     return;
                 }
 
@@ -753,13 +769,15 @@
             }
         };
 
-        // ===== Init: Check Auth =====
+        // ===== Init: Check Auth (non-blocking) =====
         (async function init() {
             const loggedIn = await checkAuth();
             if (loggedIn) {
-                onLoginSuccess();
+                // Just update user info display; no overlay/enable logic needed
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('userNickname').textContent = currentUser.nickname;
             }
-            // If not logged in, auth overlay remains visible and input stays disabled
+            // Page is fully usable regardless of login status
         })();
     </script>
     <script>

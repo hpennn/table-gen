@@ -1,27 +1,23 @@
-const CACHE_NAME = 'table-gen-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.svg'
-];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+var CACHE_NAME = 'table-gen-v1';
+var ASSETS = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+self.addEventListener('install', function(e) {
+  e.waitUntil(caches.open(CACHE_NAME).then(function(c) { return c.addAll(ASSETS); }));
+  self.skipWaiting();
+});
+self.addEventListener('fetch', function(e) {
+  e.respondWith(
+    caches.match(e.request).then(function(r) {
+      return r || fetch(e.request).then(function(resp) {
+        var clone = resp.clone();
+        caches.open(CACHE_NAME).then(function(c) { c.put(e.request, clone); });
+        return resp;
+      }).catch(function() { return caches.match('/'); });
+    })
   );
 });
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
-  );
-});
-
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-    ))
-  );
+self.addEventListener('activate', function(e) {
+  e.waitUntil(caches.keys().then(function(ks) {
+    return Promise.all(ks.filter(function(k) { return k !== CACHE_NAME; }).map(function(k) { return caches.delete(k); }));
+  }));
+  self.clients.claim();
 });

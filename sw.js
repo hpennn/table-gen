@@ -1,10 +1,21 @@
-var CACHE_NAME = 'table-gen-v1';
+var CACHE_NAME = 'table-gen-2';
 var ASSETS = ['/', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
 self.addEventListener('install', function(e) {
   e.waitUntil(caches.open(CACHE_NAME).then(function(c) { return c.addAll(ASSETS); }));
   self.skipWaiting();
 });
 self.addEventListener('fetch', function(e) {
+  // Network-first strategy for HTML navigation requests
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        return response;
+      }).catch(function() {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(function(r) {
       return r || fetch(e.request).then(function(resp) {

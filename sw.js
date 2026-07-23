@@ -6,12 +6,12 @@ self.addEventListener('install', function(e) {
 });
 self.addEventListener('fetch', function(e) {
   // Network-first strategy for HTML navigation requests
-  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(
-      fetch(event.request).then(function(response) {
+  if (e.request.mode === 'navigate' || e.request.headers.get('accept')?.includes('text/html')) {
+    e.respondWith(
+      fetch(e.request).then(function(response) {
         return response;
       }).catch(function() {
-        return caches.match(event.request);
+        return caches.match(e.request);
       })
     );
     return;
